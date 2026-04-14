@@ -3,6 +3,7 @@ package com.revature.controller;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
+import com.revature.model.Chef;
 import com.revature.service.AuthenticationService;
 import com.revature.service.ChefService;
 
@@ -31,9 +32,10 @@ public class AuthenticationController {
      * @param chefService the service used to manage chef-related operations
      * @param authService the service used to manage authentication-related operations
      */
-    public AuthenticationController(ChefService chefService, AuthenticationService authService) {
-        
-    }
+   public AuthenticationController(ChefService chefService, AuthenticationService authService) {
+    this.chefService = chefService;
+    this.authService = authService;
+}
 
     /**
      * TODO: Registers a new chef in the system.
@@ -44,9 +46,18 @@ public class AuthenticationController {
      *
      * @param ctx the Javalin context containing the chef information in the request body
      */
-    public void register(Context ctx) {
-        
+   public void register(Context ctx) {
+    Chef chef = ctx.bodyAsClass(Chef.class);
+
+    Chef created = authService.registerChef(chef);
+
+    if (created == null) {
+        ctx.status(409).result("Username already exists");
+    } else {
+        ctx.status(201).json(created);   
     }
+}
+
 
     /**
      * TODO: Authenticates a chef and uses a generated authorization token if the credentials are valid. The token is used to check if login is successful. If so, this method responds with a 200 OK status, the token in the response body, and an "Authorization" header that sends the token in the response.
@@ -56,8 +67,17 @@ public class AuthenticationController {
      * @param ctx the Javalin context containing the chef login credentials in the request body
      */
     public void login(Context ctx) {
-        
+    Chef chef = ctx.bodyAsClass(Chef.class);
+
+    String token = authService.login(chef);
+
+    if (token == null) {
+        ctx.status(401).result("Invalid username or password");
+    } else {
+        ctx.header("Authorization", token);
+        ctx.status(200).result(token);
     }
+}
 
     /**
      * TODO: Logs out the currently authenticated chef by invalidating their token. Responds with a 200 OK status and a result of "Logout successful".
@@ -65,9 +85,17 @@ public class AuthenticationController {
      * @param ctx the Javalin context, containing the Authorization token in the request header
      */
     public void logout(Context ctx) {
-        
+    String rawToken = ctx.header("Authorization");
+    // Strip "Bearer " prefix if present
+    String token = rawToken;
+    if (rawToken != null && rawToken.startsWith("Bearer ")) {
+        token = rawToken.substring(7);
+    } else if (rawToken != null && rawToken.startsWith("Bearer")) {
+        token = rawToken.substring(6);
     }
-
+    authService.logout(token);
+    ctx.status(200).result("Logout successful");
+}
     /**
      * Configures the routes for authentication operations.
      * 

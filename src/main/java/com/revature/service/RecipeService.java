@@ -6,6 +6,7 @@ import java.util.Optional;
 import com.revature.dao.RecipeDAO;
 import com.revature.model.Recipe;
 import com.revature.util.Page;
+import com.revature.util.PageOptions;
 
 /**
  * The RecipeService class provides services related to Recipe objects,
@@ -27,8 +28,8 @@ public class RecipeService {
      * @param recipeDao the RecipeDao to be used by this service for data access
      */
     public RecipeService(RecipeDAO recipeDAO) {
-        
-    }
+    this.recipeDAO = recipeDAO;
+}
 
     /**
      * TODO: Finds a Recipe by its unique identifier.
@@ -38,8 +39,8 @@ public class RecipeService {
      *         an empty Optional if not found
      */
     public Optional<Recipe> findRecipe(int id) {
-        return null;
-    }
+    return Optional.ofNullable(recipeDAO.getRecipeById(id));
+}
 
     /**
      * TODO: Saves a Recipe object to the data store. If the id is 0, create a new Recipe and set the `recipe` id field to the updated id.
@@ -49,8 +50,13 @@ public class RecipeService {
      * @param recipe the Recipe object to be saved
      */
     public void saveRecipe(Recipe recipe) {
-        
+    if (recipe.getId() == 0) {
+        int id = recipeDAO.createRecipe(recipe);
+        recipe.setId(id);
+    } else {
+        recipeDAO.updateRecipe(recipe);
     }
+}
 
     /**
      * TODO: Searches for recipes with pagination and sorting options.
@@ -63,8 +69,15 @@ public class RecipeService {
      * @return a Page containing the results of the search
      */
     public Page<Recipe> searchRecipes(String term, int page, int pageSize, String sortBy, String sortDirection) {
-        return null;
+
+    PageOptions options = new PageOptions(page, pageSize, sortBy, sortDirection);
+
+    if (term == null) {
+        return recipeDAO.getAllRecipes(options);
     }
+
+    return recipeDAO.searchRecipesByTerm(term, options);
+}
 
     /**
      * TODO: Searches for recipes based on a search term.
@@ -73,15 +86,17 @@ public class RecipeService {
      * @return a list of Recipe objects that match the search term
      */
     public List<Recipe> searchRecipes(String term) {
-        return null;
-    }
+    if (term == null) return recipeDAO.getAllRecipes();
+    return recipeDAO.searchRecipesByTerm(term);
+}
 
     /**
      * TODO: Deletes a Recipe by its unique identifier.
      *
      * @param id the unique identifier of the recipe to be deleted
      */
-    public void deleteRecipe(int id) {
-        
-    }
+   public void deleteRecipe(int id) {
+    Recipe r = recipeDAO.getRecipeById(id);
+    if (r != null) recipeDAO.deleteRecipe(r);
+}
 }
